@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+    <!--[if lt IE 9]>
+        <style>body {display: none; background: none !important} </style>
+        <meta http-equiv="Refresh" Content="0; url=//outdatedbrowser.com/" />
+    <![endif]-->
+
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge, chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="format-detection" content="telephone=no" />
+<meta name="author" content="John Doe" />
+
+
+
+<meta name="description" content="Redis持久化机制官网描述 Redis工作时数据都存储在内存中，万一服务器断电，则所有数据都会丢失。针对这种情况，Redis采用持久化机制来增强数据安全性。 1.RDB①机制描述每隔一定的时间把内存中的数据作为一个快照保存到硬盘上的文件中。Redis默认开启RDB机制。 ②触发时机[1]基于默认配置123save 900 1save 300 10save 60 10000  含义    配置 含">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Redis持久化机制">
+<meta property="og:url" content="http://yoursite.com/2020/02/15/Redis%E6%8C%81%E4%B9%85%E5%8C%96%E6%9C%BA%E5%88%B6/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="Redis持久化机制官网描述 Redis工作时数据都存储在内存中，万一服务器断电，则所有数据都会丢失。针对这种情况，Redis采用持久化机制来增强数据安全性。 1.RDB①机制描述每隔一定的时间把内存中的数据作为一个快照保存到硬盘上的文件中。Redis默认开启RDB机制。 ②触发时机[1]基于默认配置123save 900 1save 300 10save 60 10000  含义    配置 含">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2020-02-15T05:22:38.000Z">
+<meta property="article:modified_time" content="2020-09-05T15:19:33.506Z">
+<meta property="article:author" content="John Doe">
+<meta property="article:tag" content="Redis">
+<meta name="twitter:card" content="summary">
+
+<link rel="apple-touch-icon" href= "/apple-touch-icon.png">
+
+
+    <link rel="alternate" href="/atom.xml" title="Hexo" type="application/atom+xml">
+
+
+
+    <link rel="shortcut icon" href="/favicon.png">
+
+
+
+    <link href="//cdn.bootcss.com/animate.css/3.5.1/animate.min.css" rel="stylesheet">
+
+
+
+    <link href="//cdn.bootcss.com/fancybox/2.1.5/jquery.fancybox.min.css" rel="stylesheet">
+
+
+
+    <script src="//cdn.bootcss.com/pace/1.0.2/pace.min.js"></script>
+    <link href="//cdn.bootcss.com/pace/1.0.2/themes/blue/pace-theme-minimal.css" rel="stylesheet">
+
+
+
+<link rel="stylesheet" href="/css/style.css">
+
+
+
+
+<link href="//cdn.bootcss.com/font-awesome/4.6.3/css/font-awesome.min.css" rel="stylesheet">
+
+
+<title>Redis持久化机制 | Hexo</title>
+
+<script src="//cdn.bootcss.com/jquery/2.2.4/jquery.min.js"></script>
+<script src="//cdn.bootcss.com/clipboard.js/1.5.10/clipboard.min.js"></script>
+
+<script>
+    var yiliaConfig = {
+        fancybox: true,
+        animate: true,
+        isHome: false,
+        isPost: true,
+        isArchive: false,
+        isTag: false,
+        isCategory: false,
+        fancybox_js: "//cdn.bootcss.com/fancybox/2.1.5/jquery.fancybox.min.js",
+        scrollreveal: "//cdn.bootcss.com/scrollReveal.js/3.1.4/scrollreveal.min.js",
+        search: 
+    }
+</script>
+
+
+    <script> yiliaConfig.jquery_ui = [false]; </script>
+
+
+
+    <script> yiliaConfig.rootUrl = "\/";</script>
+
+
+
+
+
+
+<meta name="generator" content="Hexo 4.2.1"></head>
+<body>
+  <div id="container">
+    <div class="left-col">
+    <div class="overlay"></div>
+<div class="intrude-less">
+    <header id="header" class="inner">
+        <a href="/" class="profilepic">
+            <img src="/img/avatar.png" class="animated zoomIn">
+        </a>
+        <hgroup>
+          <h1 class="header-author"><a href="/">John Doe</a></h1>
+        </hgroup>
+
+        
+
+        
+
+
+        
+            <div id="switch-btn" class="switch-btn">
+                <div class="icon">
+                    <div class="icon-ctn">
+                        <div class="icon-wrap icon-house" data-idx="0">
+                            <div class="birdhouse"></div>
+                            <div class="birdhouse_holes"></div>
+                        </div>
+                        <div class="icon-wrap icon-ribbon hide" data-idx="1">
+                            <div class="ribbon"></div>
+                        </div>
+                        
+                        <div class="icon-wrap icon-link hide" data-idx="2">
+                            <div class="loopback_l"></div>
+                            <div class="loopback_r"></div>
+                        </div>
+                        
+                        
+                        <div class="icon-wrap icon-me hide" data-idx="3">
+                            <div class="user"></div>
+                            <div class="shoulder"></div>
+                        </div>
+                        
+                    </div>
+                    
+                </div>
+                <div class="tips-box hide">
+                    <div class="tips-arrow"></div>
+                    <ul class="tips-inner">
+                        <li>Menu</li>
+                        <li>Tags</li>
+                        
+                        <li>Friends</li>
+                        
+                        
+                        <li>About Me</li>
+                        
+                    </ul>
+                </div>
+            </div>
+        
+
+        <div id="switch-area" class="switch-area">
+            <div class="switch-wrap">
+                <section class="switch-part switch-part1">
+                    <nav class="header-menu">
+                        <ul>
+                        
+                            <li><a href="/">主页</a></li>
+                        
+                            <li><a href="/archives/">所有文章</a></li>
+                        
+                            <li><a href="/tags/">标签云</a></li>
+                        
+                            <li><a href="/about/">关于我</a></li>
+                        
+                        </ul>
+                    </nav>
+                    <nav class="header-nav">
+                        <ul class="social">
+                            
+                                <a class="fa Email" href="mailto:123@123.com" title="Email"></a>
+                            
+                                <a class="fa GitHub" href="#" title="GitHub"></a>
+                            
+                                <a class="fa RSS" href="/atom.xml" title="RSS"></a>
+                            
+                        </ul>
+                    </nav>
+                </section>
+                
+                
+                <section class="switch-part switch-part2">
+                    <div class="widget tagcloud" id="js-tagcloud">
+                        <ul class="tag-list" itemprop="keywords"><li class="tag-list-item"><a class="tag-list-link" href="/tags/First-Test/" rel="tag">First_Test</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Hive/" rel="tag">Hive</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Redis/" rel="tag">Redis</a></li></ul>
+                    </div>
+                </section>
+                
+                
+                
+                <section class="switch-part switch-part3">
+                    <div id="js-friends">
+                    
+                      <a class="main-nav-link switch-friends-link" href="https://hexo.io" target="_blank" rel="noopener">Hexo</a>
+                    
+                      <a class="main-nav-link switch-friends-link" href="https://pages.github.com/" target="_blank" rel="noopener">GitHub</a>
+                    
+                      <a class="main-nav-link switch-friends-link" href="http://moxfive.xyz/" target="_blank" rel="noopener">MOxFIVE</a>
+                    
+                    </div>
+                </section>
+                
+
+                
+                
+                <section class="switch-part switch-part4">
+                
+                    <div id="js-aboutme">专注于前端</div>
+                </section>
+                
+            </div>
+        </div>
+    </header>                
+</div>
+    </div>
+    <div class="mid-col">
+      <nav id="mobile-nav">
+      <div class="overlay">
+          <div class="slider-trigger"></div>
+          <h1 class="header-author js-mobile-header hide"><a href="/" title="回到主页">John Doe</a></h1>
+      </div>
+    <div class="intrude-less">
+        <header id="header" class="inner">
+            <a href="/" class="profilepic">
+                <img src="/img/avatar.png" class="animated zoomIn">
+            </a>
+            <hgroup>
+              <h1 class="header-author"><a href="/" title="回到主页">John Doe</a></h1>
+            </hgroup>
+            
+            <nav class="header-menu">
+                <ul>
+                
+                    <li><a href="/">主页</a></li>
+                
+                    <li><a href="/archives/">所有文章</a></li>
+                
+                    <li><a href="/tags/">标签云</a></li>
+                
+                    <li><a href="/about/">关于我</a></li>
+                
+                <div class="clearfix"></div>
+                </ul>
+            </nav>
+            <nav class="header-nav">
+                        <ul class="social">
+                            
+                                <a class="fa Email" target="_blank" href="mailto:123@123.com" title="Email"></a>
+                            
+                                <a class="fa GitHub" target="_blank" href="#" title="GitHub"></a>
+                            
+                                <a class="fa RSS" target="_blank" href="/atom.xml" title="RSS"></a>
+                            
+                        </ul>
+            </nav>
+        </header>                
+    </div>
+    <link class="menu-list" tags="Tags" friends="Friends" about="About Me"/>
+</nav>
+      <div class="body-wrap"><article id="post-Redis持久化机制" class="article article-type-post" itemscope itemprop="blogPost">
+  
+    <div class="article-meta">
+      <a href="/2020/02/15/Redis%E6%8C%81%E4%B9%85%E5%8C%96%E6%9C%BA%E5%88%B6/" class="article-date">
+      <time datetime="2020-02-15T05:22:38.000Z" itemprop="datePublished">2020-02-15</time>
+</a>
+
+
+    </div>
+  
+  <div class="article-inner">
+    
+      <input type="hidden" class="isFancy" />
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      Redis持久化机制
+    </h1>
+  
+
+      </header>
+      
+      <div class="article-info article-info-post">
+        
+    <div class="article-category tagcloud">
+    <a class="article-category-link" href="/categories/%E5%A4%A7%E6%95%B0%E6%8D%AE/">大数据</a>
+    </div>
+
+
+        
+    <div class="article-tag tagcloud">
+        <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Redis/" rel="tag">Redis</a></li></ul>
+    </div>
+
+        <div class="clearfix"></div>
+      </div>
+      
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+          
+        <h1 id="Redis持久化机制"><a href="#Redis持久化机制" class="headerlink" title="Redis持久化机制"></a>Redis持久化机制</h1><p><a href="https://redis.io/topics/persistence#snapshotting" target="_blank" rel="noopener">官网描述</a></p>
+<p>Redis工作时数据都存储在内存中，万一服务器断电，则所有数据都会丢失。针对这种情况，Redis采用持久化机制来增强数据安全性。</p>
+<h2 id="1-RDB"><a href="#1-RDB" class="headerlink" title="1.RDB"></a>1.RDB</h2><h3 id="①机制描述"><a href="#①机制描述" class="headerlink" title="①机制描述"></a>①机制描述</h3><p>每隔一定的时间把内存中的数据作为一个快照保存到硬盘上的文件中。Redis默认开启RDB机制。</p>
+<h3 id="②触发时机"><a href="#②触发时机" class="headerlink" title="②触发时机"></a>②触发时机</h3><h4 id="1-基于默认配置"><a href="#1-基于默认配置" class="headerlink" title="[1]基于默认配置"></a>[1]基于默认配置</h4><figure class="highlight properties"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">save</span> <span class="string">900 1</span></span><br><span class="line"><span class="attr">save</span> <span class="string">300 10</span></span><br><span class="line"><span class="attr">save</span> <span class="string">60 10000</span></span><br></pre></td></tr></table></figure>
+
+<p>含义</p>
+<table>
+<thead>
+<tr>
+<th>配置</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>save 900 1</td>
+<td>900秒内至少有一次修改则触发保存操作</td>
+</tr>
+<tr>
+<td>save 300 10</td>
+<td>300秒内至少有10次修改则触发保存操作</td>
+</tr>
+<tr>
+<td>save 60 10000</td>
+<td>60秒内至少有1万次修改则触发保存操作</td>
+</tr>
+</tbody></table>
+<h4 id="2-使用保存命令"><a href="#2-使用保存命令" class="headerlink" title="[2]使用保存命令"></a>[2]使用保存命令</h4><p>save或bgsave</p>
+<h4 id="3-使用flushall命令"><a href="#3-使用flushall命令" class="headerlink" title="[3]使用flushall命令"></a>[3]使用flushall命令</h4><p>这个命令也会产生dump.rdb文件，但里面是空的，没有意义</p>
+<h4 id="4-服务器关闭"><a href="#4-服务器关闭" class="headerlink" title="[4]服务器关闭"></a>[4]服务器关闭</h4><p>如果执行SHUTDOWN命令让Redis正常退出，那么此前Redis就会执行一次持久化保存。</p>
+<h3 id="③相关配置"><a href="#③相关配置" class="headerlink" title="③相关配置"></a>③相关配置</h3><table>
+<thead>
+<tr>
+<th>配置项</th>
+<th>取值</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>save</td>
+<td>“”</td>
+<td>禁用RDB机制</td>
+</tr>
+<tr>
+<td>dbfilename</td>
+<td>文件名，例如：dump.rdb</td>
+<td>设置RDB机制下，数据存储文件的文件名</td>
+</tr>
+<tr>
+<td>dir</td>
+<td>Redis工作目录路径</td>
+<td>指定存放持久化文件的目录的路径。注意：这里指定的必须是目录不能是文件名</td>
+</tr>
+</tbody></table>
+<h3 id="④思考"><a href="#④思考" class="headerlink" title="④思考"></a>④思考</h3><p>RDB机制能够保证数据的绝对安全吗？</p>
+<h2 id="2-AOF"><a href="#2-AOF" class="headerlink" title="2.AOF"></a>2.AOF</h2><h3 id="①机制描述-1"><a href="#①机制描述-1" class="headerlink" title="①机制描述"></a>①机制描述</h3><p>根据配置文件中指定的策略，把生成数据的命令保存到硬盘上的文件中。一个AOF文件的内容可以参照下面的例子：</p>
+<figure class="highlight properties"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">*2</span></span><br><span class="line"><span class="attr">$6</span></span><br><span class="line"><span class="attr">SELECT</span></span><br><span class="line"><span class="attr">$1</span></span><br><span class="line"><span class="attr">0</span></span><br><span class="line"><span class="attr">*3</span></span><br><span class="line"><span class="attr">$3</span></span><br><span class="line"><span class="attr">set</span></span><br><span class="line"><span class="attr">$3</span></span><br><span class="line"><span class="attr">num</span></span><br><span class="line"><span class="attr">$2</span></span><br><span class="line"><span class="attr">10</span></span><br><span class="line"><span class="attr">*2</span></span><br><span class="line"><span class="attr">$4</span></span><br><span class="line"><span class="attr">incr</span></span><br><span class="line"><span class="attr">$3</span></span><br><span class="line"><span class="attr">num</span></span><br><span class="line"><span class="attr">*2</span></span><br><span class="line"><span class="attr">$4</span></span><br><span class="line"><span class="attr">incr</span></span><br><span class="line"><span class="attr">$3</span></span><br><span class="line"><span class="attr">num</span></span><br><span class="line"><span class="attr">*2</span></span><br><span class="line"><span class="attr">$4</span></span><br><span class="line"><span class="attr">incr</span></span><br><span class="line"><span class="attr">$3</span></span><br><span class="line"><span class="attr">num</span></span><br></pre></td></tr></table></figure>
+
+<p>生成上面文件内容的Redis命令是：</p>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">set num 10</span><br><span class="line">incr num</span><br><span class="line">incr num</span><br><span class="line">incr num</span><br></pre></td></tr></table></figure>
+
+<h3 id="②AOF基本配置"><a href="#②AOF基本配置" class="headerlink" title="②AOF基本配置"></a>②AOF基本配置</h3><table>
+<thead>
+<tr>
+<th>配置项</th>
+<th>取值</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>appendonly</td>
+<td>yes</td>
+<td>启用AOF持久化机制</td>
+</tr>
+<tr>
+<td></td>
+<td>no</td>
+<td>禁用AOF持久化机制[默认值]</td>
+</tr>
+<tr>
+<td>appendfilename</td>
+<td>“文件名”</td>
+<td>AOF持久化文件名</td>
+</tr>
+<tr>
+<td>dir</td>
+<td>Redis工作目录路径</td>
+<td>指定存放持久化文件的目录的路径。注意：这里指定的必须是目录不能是文件名</td>
+</tr>
+<tr>
+<td>appendfsync</td>
+<td>always</td>
+<td>每一次数据修改后都将执行文件写入操作，缓慢但是最安全。</td>
+</tr>
+<tr>
+<td></td>
+<td>everysec</td>
+<td>每秒执行一次写入操作。折中。</td>
+</tr>
+<tr>
+<td></td>
+<td>no</td>
+<td>由操作系统在适当的时候执行写入操作，最快。</td>
+</tr>
+</tbody></table>
+<h3 id="③AOF重写"><a href="#③AOF重写" class="headerlink" title="③AOF重写"></a>③AOF重写</h3><p>对比下面两组命令：</p>
+<table>
+<thead>
+<tr>
+<th>AOF重写前</th>
+<th>AOF重写后</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>set count 1<br />incr count<br />incr count<br />incr count</td>
+<td>set count 4</td>
+</tr>
+</tbody></table>
+<p>两组命令执行后对于count来说最终的值是一致的，但是进行AOF重写后省略了中间过程，可以让AOF文件体积更小。而Redis会根据AOF文件的体积来决定是否进行AOF重写。参考的配置项如下：</p>
+<table>
+<thead>
+<tr>
+<th>配置项</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>auto-aof-rewrite-percentage 100</td>
+<td>文件体积增大100%时执行AOF重写</td>
+</tr>
+<tr>
+<td>auto-aof-rewrite-min-size 64mb</td>
+<td>文件体积增长到64mb时执行AOF重写</td>
+</tr>
+</tbody></table>
+<p>实际工作中不要进行频繁的AOF重写，因为CPU资源和硬盘资源二者之间肯定是CPU资源更加宝贵，所以不应该过多耗费CPU性能去节省硬盘空间。</p>
+<h2 id="3-持久化文件损坏修复"><a href="#3-持久化文件损坏修复" class="headerlink" title="3.持久化文件损坏修复"></a>3.持久化文件损坏修复</h2><p>Redis服务器启动时如果读取了损坏的持久化文件会导致启动失败，此时为了让Redis服务器能够正常启动，需要对损坏的持久化文件进行修复。这里以AOF文件为例介绍修复操作的步骤。</p>
+<ul>
+<li><p>第一步：备份要修复的appendonly.aof文件</p>
+</li>
+<li><p>第二步：执行修复程序</p>
+<p>/usr/local/redis/bin/redis-check-aof –fix /usr/local/redis/appendonly.aof</p>
+</li>
+<li><p>第三步：重启Redis</p>
+</li>
+</ul>
+<p>注意：所谓修复持久化文件仅仅是把损坏的部分去掉，而没法把受损的数据找回。</p>
+<h2 id="4-扩展阅读：两种持久化机制的取舍"><a href="#4-扩展阅读：两种持久化机制的取舍" class="headerlink" title="4.扩展阅读：两种持久化机制的取舍"></a>4.扩展阅读：两种持久化机制的取舍</h2><h3 id="①RDB"><a href="#①RDB" class="headerlink" title="①RDB"></a>①RDB</h3><h4 id="1-优势"><a href="#1-优势" class="headerlink" title="[1]优势"></a>[1]优势</h4><p>适合大规模的数据恢复，速度较快</p>
+<h4 id="2-劣势"><a href="#2-劣势" class="headerlink" title="[2]劣势"></a>[2]劣势</h4><p>会丢失最后一次快照后的所有修改，不能绝对保证数据的高度一致性和完整性。Fork的时候，内存中的数据被克隆了一份，大致2倍的膨胀性需要考虑，但上述成立有条件，Linux也有优化手段</p>
+<h3 id="②AOF"><a href="#②AOF" class="headerlink" title="②AOF"></a>②AOF</h3><h4 id="1-优势-1"><a href="#1-优势-1" class="headerlink" title="[1]优势"></a>[1]优势</h4><p>选择appendfsync always方式运行时理论上能够做到数据完整一致，但此时性能又不好。文件内容具备一定可读性，能够用来分析Redis工作情况。</p>
+<h4 id="2-劣势-1"><a href="#2-劣势-1" class="headerlink" title="[2]劣势"></a>[2]劣势</h4><p>持久化相同的数据，文件体积比RDB大，恢复速度比RDB慢。效率在同步写入时低于RDB，不同步写入时与RDB相同。</p>
+<h3 id="③RDB和AOF并存"><a href="#③RDB和AOF并存" class="headerlink" title="③RDB和AOF并存"></a>③RDB和AOF并存</h3><p>Redis重启的时候会优先载入AOF文件来恢复原始的数据，因为在通常情况下AOF文件保存的数据集要比RDB文件保存的数据集要完整</p>
+<p>RDB的数据不实时，同时使用两者时服务器重启也只会找AOF文件。那要不要只使用AOF呢？作者建议不要，因为RDB更适合用于备份数据库(AOF在不断变化不好备份)、快速重启，而且不会有AOF可能潜在的bug，留着作为一个万一的手段。</p>
+<h3 id="④使用建议"><a href="#④使用建议" class="headerlink" title="④使用建议"></a>④使用建议</h3><p>如果Redis仅仅作为缓存可以不使用任何持久化方式。</p>
+<p>其他应用方式综合考虑性能和完整性、一致性要求。</p>
+<p>RDB文件只用作后备用途，建议只在Slave上持久化RDB文件，而且只要15分钟备份一次就够了，只保留save 900 1这条规则。如果Enalbe AOF，好处是在最恶劣情况下也只会丢失不超过两秒数据，启动脚本较简单只load自己的AOF文件就可以了。代价一是带来了持续的IO，二是AOF rewrite的最后将rewrite过程中产生的新数据写到新文件造成的阻塞几乎是不可避免的。只要硬盘许可，应该尽量减少AOF rewrite的频率，AOF重写的基础大小默认值64M太小了，可以设到5G以上。默认超过原大小100%大小时重写可以改到适当的数值。如果不开启AOF，仅靠Master-Slave Replication 实现高可用性能也不错。能省掉一大笔IO也减少了rewrite时带来的系统波动。代价是如果Master/Slave同时倒掉，会丢失十几分钟的数据，启动脚本也要比较两个Master/Slave中的RDB文件，载入较新的那个。新浪微博就选用了这种架构。</p>
+
+      
+    </div>
+    
+  </div>
+  
+    
+    <div class="copyright">
+        <p><span>Title:</span><a href="/2020/02/15/Redis%E6%8C%81%E4%B9%85%E5%8C%96%E6%9C%BA%E5%88%B6/">Redis持久化机制</a></p>
+        <p><span>Author:</span><a href="/" title="Back to Homepage">John Doe</a></p>
+        <p><span>Created:</span>2020-02-15, 13:22:38</p>
+        <p><span>Updated:</span>2020-09-05, 23:19:33</p>
+        <p>
+            <span>Full URL:</span><a class="post-url" href="/2020/02/15/Redis%E6%8C%81%E4%B9%85%E5%8C%96%E6%9C%BA%E5%88%B6/" title="Redis持久化机制">http://yoursite.com/2020/02/15/Redis%E6%8C%81%E4%B9%85%E5%8C%96%E6%9C%BA%E5%88%B6/</a>
+            <span class="copy-path" data-clipboard-text="From http://yoursite.com/2020/02/15/Redis%E6%8C%81%E4%B9%85%E5%8C%96%E6%9C%BA%E5%88%B6/　　By John Doe" title="Copy Article&#39;s Link &amp; Author"><i class="fa fa-clipboard"></i></span>
+            <script> var clipboard = new Clipboard('.copy-path'); </script>
+        </p>
+        <p>
+            <span>License:</span><i class="fa fa-creative-commons"></i> <a rel="license noopener" href="http://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" title="CC BY-NC-SA 4.0 International" target = "_blank">"CC BY-NC-SA 4.0"</a> Keep Link &amp; Author if Distribute.
+        </p>
+    </div>
+
+
+
+    <nav id="article-nav">
+        
+            <div id="article-nav-newer" class="article-nav-title">
+                <a href="/2020/02/23/Redis-Jedis/">
+                    Redis和Jedis
+                </a>
+            </div>
+        
+        
+            <div id="article-nav-older" class="article-nav-title">
+                <a href="/2020/02/05/Redis%E5%9F%BA%E7%A1%80/">
+                    Redis基础
+                </a>
+            </div>
+        
+    </nav>
+
+  
+</article>
+
+    <div id="toc" class="toc-article">
+        <strong class="toc-title">Contents</strong>
+        
+            <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#Redis持久化机制"><span class="toc-number">1.</span> <span class="toc-text">Redis持久化机制</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#1-RDB"><span class="toc-number">1.1.</span> <span class="toc-text">1.RDB</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#①机制描述"><span class="toc-number">1.1.1.</span> <span class="toc-text">①机制描述</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#②触发时机"><span class="toc-number">1.1.2.</span> <span class="toc-text">②触发时机</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#1-基于默认配置"><span class="toc-number">1.1.2.1.</span> <span class="toc-text">[1]基于默认配置</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-使用保存命令"><span class="toc-number">1.1.2.2.</span> <span class="toc-text">[2]使用保存命令</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#3-使用flushall命令"><span class="toc-number">1.1.2.3.</span> <span class="toc-text">[3]使用flushall命令</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#4-服务器关闭"><span class="toc-number">1.1.2.4.</span> <span class="toc-text">[4]服务器关闭</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#③相关配置"><span class="toc-number">1.1.3.</span> <span class="toc-text">③相关配置</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#④思考"><span class="toc-number">1.1.4.</span> <span class="toc-text">④思考</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-AOF"><span class="toc-number">1.2.</span> <span class="toc-text">2.AOF</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#①机制描述-1"><span class="toc-number">1.2.1.</span> <span class="toc-text">①机制描述</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#②AOF基本配置"><span class="toc-number">1.2.2.</span> <span class="toc-text">②AOF基本配置</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#③AOF重写"><span class="toc-number">1.2.3.</span> <span class="toc-text">③AOF重写</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-持久化文件损坏修复"><span class="toc-number">1.3.</span> <span class="toc-text">3.持久化文件损坏修复</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-扩展阅读：两种持久化机制的取舍"><span class="toc-number">1.4.</span> <span class="toc-text">4.扩展阅读：两种持久化机制的取舍</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#①RDB"><span class="toc-number">1.4.1.</span> <span class="toc-text">①RDB</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#1-优势"><span class="toc-number">1.4.1.1.</span> <span class="toc-text">[1]优势</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-劣势"><span class="toc-number">1.4.1.2.</span> <span class="toc-text">[2]劣势</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#②AOF"><span class="toc-number">1.4.2.</span> <span class="toc-text">②AOF</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#1-优势-1"><span class="toc-number">1.4.2.1.</span> <span class="toc-text">[1]优势</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-劣势-1"><span class="toc-number">1.4.2.2.</span> <span class="toc-text">[2]劣势</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#③RDB和AOF并存"><span class="toc-number">1.4.3.</span> <span class="toc-text">③RDB和AOF并存</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#④使用建议"><span class="toc-number">1.4.4.</span> <span class="toc-text">④使用建议</span></a></li></ol></li></ol></li></ol>
+        
+    </div>
+    <style>
+        .left-col .switch-btn,
+        .left-col .switch-area {
+            display: none;
+        }
+        .toc-level-3 i,
+        .toc-level-3 ol {
+            display: none !important;
+        }
+    </style>
+
+    <input type="button" id="tocButton" value="Hide"  title="Show or Hide Table of Contents">
+
+    <script>
+        yiliaConfig.toc = ["Hide", "Show", !!"false"];
+    </script>
+
+
+
+    
+<div class="share">
+    
+        <div class="bdsharebuttonbox">
+            <a href="#" class="fa fa-twitter bds_twi" data-cmd="twi" title="分享到推特"></a>
+            <a href="#" class="fa fa-weibo bds_tsina" data-cmd="tsina" title="分享到新浪微博"></a>
+            <a href="#" class="fa fa-qq bds_sqq" data-cmd="sqq" title="分享给 QQ 好友"></a>
+            <a href="#" class="fa fa-files-o bds_copy" data-cmd="copy" title="复制网址"></a>
+            <a href="#" class="fa fa fa-envelope-o bds_mail" data-cmd="mail" title="通过邮件分享"></a>
+            <a href="#" class="fa fa-weixin bds_weixin" data-cmd="weixin" title="生成文章二维码"></a>
+            <a href="#" class="fa fa-share-alt bds_more" data-cmd="more"></i></a>
+        </div>
+        <script>
+            window._bd_share_config={
+                "common":{"bdSnsKey":{},"bdText":"Redis持久化机制　| Hexo　","bdMini":"2","bdMiniList":false,"bdPic":"","bdStyle":"0","bdSize":"24"},"share":{}};with(document)0[(getElementsByTagName('head')[0]||body).appendChild(createElement('script')).src='http://bdimg.share.baidu.com/static/api/js/share.js?v=89860593.js?cdnversion='+~(-new Date()/36e5)];
+        </script>
+    
+
+    
+</div>
+
+
+
+
+
+
+
+    
+
+
+
+
+    <div class="scroll" id="post-nav-button">
+        
+            <a href="/2020/02/23/Redis-Jedis/" title="Pre: Redis和Jedis">
+                <i class="fa fa-angle-left"></i>
+            </a>
+        
+
+        <a title="Mini Archives"><i class="fa fa-bars"></i><i class="fa fa-times"></i></a>
+
+        
+            <a href="/2020/02/05/Redis%E5%9F%BA%E7%A1%80/" title="Next: Redis基础">
+                <i class="fa fa-angle-right"></i>
+            </a>
+        
+    </div>
+
+    <ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2020/09/05/SpringBoot%E6%95%B4%E5%90%88redis/">SpringBoot整合redis</a></li><li class="post-list-item"><a class="post-list-link" href="/2020/09/05/Redis%E5%8F%91%E5%B8%83%E8%AE%A2%E9%98%85/">Redis发布订阅</a></li><li class="post-list-item"><a class="post-list-link" href="/2020/09/05/Redis%E4%B8%BB%E4%BB%8E%E5%A4%8D%E5%88%B6%E6%9C%BA%E5%88%B6/">Redis主从复制机制</a></li><li class="post-list-item"><a class="post-list-link" href="/2020/09/05/Redis%E4%BA%8B%E5%8A%A1%E6%8E%A7%E5%88%B6/">Redis事务控制</a></li><li class="post-list-item"><a class="post-list-link" href="/2020/02/23/Redis-Jedis/">Redis和Jedis</a></li><li class="post-list-item"><a class="post-list-link" href="/2020/02/15/Redis%E6%8C%81%E4%B9%85%E5%8C%96%E6%9C%BA%E5%88%B6/">Redis持久化机制</a></li><li class="post-list-item"><a class="post-list-link" href="/2020/02/05/Redis%E5%9F%BA%E7%A1%80/">Redis基础</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/12/22/Hive%E5%9F%BA%E7%A1%80/">Hive基础</a></li><li class="post-list-item"><a class="post-list-link" href="/2017/09/03/testfile/">testfile</a></li></ul>
+
+
+
+
+    <script>
+        
+    </script>
+</div>
+      <footer id="footer">
+    <div class="outer">
+        <div id="footer-info">
+            <div class="footer-left">
+                <i class="fa fa-copyright"></i> 
+                2016-2020 John Doe
+            </div>
+            <div class="footer-right">
+                <a href="http://hexo.io/" target="_blank" title="A fast, simple &amp; powerful blog framework">Hexo</a>  Theme <a href="https://github.com/MOxFIVE/hexo-theme-yelee" target="_blank" title="Another simple and elegant theme for Hexo  v3.5">Yelee</a> by MOxFIVE <i class="fa fa-heart animated infinite pulse"></i>
+            </div>
+        </div>
+        
+            <div class="visit">
+                
+                    <span id="busuanzi_container_site_pv" style='display:none'>
+                        <span id="site-visit" title="Site Visitors"><i class="fa fa-user" aria-hidden="true"></i><span id="busuanzi_value_site_uv"></span>
+                        </span>
+                    </span>
+                
+                
+                    <span>| </span>
+                
+                
+                    <span id="busuanzi_container_page_pv" style='display:none'>
+                        <span id="page-visit"  title="Page Hits"><i class="fa fa-eye animated infinite pulse" aria-hidden="true"></i><span id="busuanzi_value_page_pv"></span>
+                        </span>
+                    </span>
+                
+            </div>
+        
+    </div>
+</footer>
+    </div>
+    
+<script data-main="/js/main.js" src="//cdn.bootcss.com/require.js/2.2.0/require.min.js"></script>
+
+    <script>
+        $(document).ready(function() {
+            var iPad = window.navigator.userAgent.indexOf('iPad');
+            if (iPad > -1 || $(".left-col").css("display") === "none") {
+                var bgColorList = ["#9db3f4", "#414141", "#e5a859", "#f5dfc6", "#c084a0", "#847e72", "#cd8390", "#996731"];
+                var bgColor = Math.ceil(Math.random() * (bgColorList.length - 1));
+                $("body").css({"background-color": bgColorList[bgColor], "background-size": "cover"});
+            }
+            else {
+                var backgroundnum = 5;
+                var backgroundimg = "url(/background/bg-x.jpg)".replace(/x/gi, Math.ceil(Math.random() * backgroundnum));
+                $("body").css({"background": backgroundimg, "background-attachment": "fixed", "background-size": "cover"});
+            }
+        })
+    </script>
+
+
+
+
+
+<div class="scroll" id="scroll">
+    <a href="#" title="Back to Top"><i class="fa fa-arrow-up"></i></a>
+    <a href="#comments" onclick="load$hide();" title="Comments"><i class="fa fa-comments-o"></i></a>
+    <a href="#footer" title="Go to Bottom"><i class="fa fa-arrow-down"></i></a>
+</div>
+<script>
+    // Open in New Window
+    
+        var oOpenInNew = {
+            
+            
+            
+            
+            
+            
+             archives: ".archive-article-title", 
+             miniArchives: "a.post-list-link", 
+            
+             friends: "#js-friends a", 
+             socail: ".social a" 
+        }
+        for (var x in oOpenInNew) {
+            $(oOpenInNew[x]).attr("target", "_blank");
+        }
+    
+</script>
+
+<script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js">
+</script>
+  </div>
+</body>
+</html>
